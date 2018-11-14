@@ -8,23 +8,47 @@
 
 'use strict';
 
-var expect = require('chai').expect;
-var MongoClient = require('mongodb').MongoClient;
-var ObjectId = require('mongodb').ObjectId;
-const MONGODB_CONNECTION_STRING = process.env.DB;
+const expect = require('chai').expect;
+const MongoClient = require('mongodb');
+const ObjectID = require('mongodb').ObjectID;
+
+const CONNECTION_STRING = process.env.DB;
 //Example connection: MongoClient.connect(MONGODB_CONNECTION_STRING, function(err, db) {});
 
 module.exports = function (app) {
+  let db;
+  MongoClient.connect(CONNECTION_STRING, function(err, _db) {
+    if (err) {
+      console.error(err) 
+      return
+    }
+    db = _db.db("eoskin-library")
+  })
 
   app.route('/api/books')
-    .get(function (req, res){
-      //response will be array of book objects
-      //json res format: [{"_id": bookid, "title": book_title, "commentcount": num_of_comments },...]
+    .get(async (req, res) => {
+      try {
+        const cursor = await db.collection('books').find()
+        const data = await cursor.toArray()
+        res.json(data)
+      } catch(err) {
+        res.status(400)
+          .type('text')
+          .send('fail');
+      } 
     })
     
-    .post(function (req, res){
+    .post(async (req, res) => {
       const { title } = req.body;
-      //response will contain new book object including atleast _id and title
+      try {
+        const { insertedId: _id } = await db.collection('books').insertOne({ title, commentcount: 0 })
+        const obj = await db.collection('books').findOne({ _id: new ObjectID(_id) })
+        res.json(obj)
+      } catch (err) {
+        res.status(400)
+          .type('text')
+          .send('fail');
+      }
     })
     
     .delete(function(req, res){
