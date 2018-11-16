@@ -94,7 +94,7 @@ suite('Functional Tests', function() {
       
       test('Test GET /api/books/[id] with id not in db',  function(done){
         chai.request(server)
-          .get('/api/books')
+          .get('/api/books/5beee5a794230a23276e03fa')
           .end(function(err, res){
             assert.equal(res.status, 200);
             assert.equal(res.text, 'no book exists', 'response should be an array');
@@ -104,13 +104,12 @@ suite('Functional Tests', function() {
       
       test('Test GET /api/books/[id] with valid id in db',  function(done){
         chai.request(server)
-          .get(`/api/books/{id}/`)
+          .get(`/api/books/${id}`)
           .end(function(err, res){
             assert.equal(res.status, 200);
-            assert.property(res.body, 'comments', 'Book should contain commentcount');
+            assert.property(res.body, 'comments', 'Book should contain comments');
             assert.property(res.body, 'title', 'Book  should contain title');
             assert.property(res.body, '_id', 'Book should contain _id');
-            assert.isString(res.body.comments[0], 'Book should have comments');
             done();
           });
       });
@@ -123,14 +122,15 @@ suite('Functional Tests', function() {
       test('Test POST /api/books/[id] with comment', function(done){
         const payload = {comment: 'ping'}
         chai.request(server)
-          .post(`/api/books/{id}/`)
+          .post(`/api/books/${id}`)
           .send(payload)
           .end(function(err, res){
             assert.equal(res.status, 200);
-            assert.property(res.body, 'comments', 'Book should contain commentcount');
+            assert.property(res.body, 'comments', 'Book should contain comments');
             assert.property(res.body, 'title', 'Book  should contain title');
             assert.property(res.body, '_id', 'Book should contain _id');
-            assert.isString(res.body.comments[0], 'Book should have comments');
+            assert.isArray(res.body.comments, 'comments must be array');
+            assert.equal(res.body.comments[0], payload.comment, 'Book should have comments');
             done();
           });
       });
