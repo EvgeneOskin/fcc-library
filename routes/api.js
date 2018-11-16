@@ -38,9 +38,10 @@ module.exports = function (app) {
       } 
     })
     
-    .post(async (req, res) => {
+    .post((req, res) => {
       const { title } = req.body;
-      try {
+          
+
         const { insertedId: _id } = await db.collection('books').insertOne({ title, comments: [] })
         const obj = await db.collection('books').findOne({ _id: new ObjectID(_id) })
         res.json(obj)
@@ -51,45 +52,54 @@ module.exports = function (app) {
       }
     })
     
-    .delete(function(req, res){
-      //if successful response will be 'complete delete successful'
+    .delete((req, res) => {
+      safe(res)(async () => {
+        await db.collection.deleteMany()
+        res.text('complete delete successful')
+      })
     });
 
 
 
   app.route('/api/books/:id')
-    .get(async (req, res) => {
+    .get((req, res) => {
       const {id} = req.params;
-      try {
+      safe(res)(async () => {
         const obj = await db.collection('books').findOne({ _id: new ObjectID(id) })
         res.json(obj)
-      } catch (err) {
-        res.status(400)
-          .type('text')
-          .send('fail');
-      }
+      })
     })
     
-    .post(function(req, res){
-      var { id } = req.params;
-      var { comment } = req.body;
-      try {
-        const obj = await db.collection('books').findOneAndUpdate(
+    .post((req, res) => {
+      const { id } = req.params;
+      const { comment } = req.body;
+      safe(res)( async () => {
+        const { value: obj } = await db.collection('books').findOneAndUpdate(
           { _id: new ObjectID(id) },
           { $push: { comments: comment } },
           { returnNewDocument: true }
         )
         res.json(obj)
-      } catch (err) {
-        res.status(400)
-          .type('text')
-          .send('fail');
-      }
+      })
     })
-    
-    .delete(function(req, res){
-      var bookid = req.params.id;
-      //if successful response will be 'delete successful'
+    .delete((req, res) => {
+      const { id } = req.params;
+      safe(res)(async () => {
+        const { value: obj } = await db.collection('books').deleteOne(
+          { _id: new ObjectID(id) },
+        )
+        res.text('delete successful')
+      })
     });
+  
+  const safe = res => async (exec) => {
+    try {
+      await exec()
+    } catch (err) {
+      res.status(400)
+        .type('text')
+        .send('fail');
+    }
+  }
   
 };
