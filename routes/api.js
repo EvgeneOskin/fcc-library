@@ -57,7 +57,11 @@ module.exports = function (app) {
       const {id} = req.params;
       safe(res)(async () => {
         const obj = await db.collection('books').findOne({ _id: new ObjectID(id) })
-        res.json(obj)
+        if (obj === null) {
+          res.send('no book exists')
+        } else {
+          res.json(obj)
+        }
       })
     })
     
@@ -65,12 +69,12 @@ module.exports = function (app) {
       const { id } = req.params;
       const { comment } = req.body;
       safe(res)( async () => {
-        const { value: obj, ...rest } = await db.collection('books').findOneAndUpdate(
+        await db.collection('books').findOneAndUpdate(
           { _id: new ObjectID(id) },
           { $push: { comments: comment } },
-          { returnNewDocument: true }
         )
-        console.log(rest)
+        const obj = await db.collection('books').findOne({ _id: new ObjectID(id) })
+        
         res.json(obj)
       })
     })
@@ -81,11 +85,7 @@ module.exports = function (app) {
           { _id: new ObjectID(id) },
         )
         console.log('deleted', deletedCount)
-        if (deletedCount === 0) {
-          res.send('no book exists')
-        } else {
-          res.send('delete successful')
-        }
+        res.send('delete successful')
       })
     });
   
