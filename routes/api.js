@@ -30,7 +30,7 @@ module.exports = function (app) {
       try {
         const cursor = await db.collection('books').find()
         const data = await cursor.toArray()
-        res.json(data)
+        res.json(data.map(({ comments, ...i }) => ({ ...i, commentcount: comments.length })))
       } catch(err) {
         res.status(400)
           .type('text')
@@ -41,7 +41,7 @@ module.exports = function (app) {
     .post(async (req, res) => {
       const { title } = req.body;
       try {
-        const { insertedId: _id } = await db.collection('books').insertOne({ title, commentcount: 0 })
+        const { insertedId: _id } = await db.collection('books').insertOne({ title, comments: [] })
         const obj = await db.collection('books').findOne({ _id: new ObjectID(_id) })
         res.json(obj)
       } catch (err) {
@@ -58,15 +58,33 @@ module.exports = function (app) {
 
 
   app.route('/api/books/:id')
-    .get(function (req, res){
-      var bookid = req.params.id;
-      //json res format: {"_id": bookid, "title": book_title, "comments": [comment,comment,...]}
+    .get(async (req, res) => {
+      const {id} = req.params;
+      try {
+        const obj = await db.collection('books').findOne({ _id: new ObjectID(id) })
+        res.json(obj)
+      } catch (err) {
+        res.status(400)
+          .type('text')
+          .send('fail');
+      }
     })
     
     .post(function(req, res){
-      var bookid = req.params.id;
-      var comment = req.body.comment;
-      //json res format same as .get
+      var { id } = req.params;
+      var { comment } = req.body;
+      try {
+        const obj = await db.collection('books').findOneAndUpdate(
+          { _id: new ObjectID(id) },
+          { $push: { comments: comment } },
+          { returnNewDocument: true }
+        )
+        res.json(obj)
+      } catch (err) {
+        res.status(400)
+          .type('text')
+          .send('fail');
+      }
     })
     
     .delete(function(req, res){
